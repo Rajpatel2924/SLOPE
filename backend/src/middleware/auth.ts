@@ -1,0 +1,3 @@
+import {Request,Response,NextFunction} from "express";import jwt from "jsonwebtoken";
+export interface AuthRequest extends Request{user?:{id:string;role:"student"|"admin"}}
+export function requireAuth(req:AuthRequest,res:Response,next:NextFunction){const h=req.headers.authorization;if(!h?.startsWith("Bearer "))return res.status(401).json({success:false,message:"Authentication required"});try{const secret=process.env.JWT_SECRET!;const p=jwt.verify(h.slice(7),secret) as any;req.user={id:p.id,role:p.role};next()}catch{return res.status(401).json({success:false,message:"Invalid or expired token"})}}
