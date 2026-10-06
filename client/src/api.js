@@ -27,7 +27,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const url = String(error.config?.url || '');
-    const isCredentialRequest = /\/auth\/(login|register)(?:\?|$)/.test(url);
+    const isCredentialRequest = /\/auth\/(login|register|forgot-password|reset-password)(?:\?|$)/.test(url);
 
     if (error.response?.status === 401 && !isCredentialRequest) {
       localStorage.removeItem(TOKEN_KEY);

@@ -65,12 +65,12 @@ export default function Register() {
           </div>
           <div>
             <label htmlFor="register-password" className="label">Password</label>
-            <input id="register-password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" required minLength={8} maxLength={128} aria-describedby="password-help" className="field" value={form.password} disabled={submitting} onChange={updateField} />
+            <input id="register-password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" required minLength={8} maxLength={72} aria-describedby="password-help" className="field" value={form.password} disabled={submitting} onChange={updateField} />
             <p id="password-help" className="mt-2 text-xs text-slate-500">Use at least 8 characters.</p>
           </div>
           <div>
             <label htmlFor="register-confirm" className="label">Confirm password</label>
-            <input id="register-confirm" name="confirmPassword" type={showPassword ? 'text' : 'password'} autoComplete="new-password" required minLength={8} maxLength={128} className="field" value={form.confirmPassword} disabled={submitting} onChange={updateField} />
+            <input id="register-confirm" name="confirmPassword" type={showPassword ? 'text' : 'password'} autoComplete="new-password" required minLength={8} maxLength={72} className="field" value={form.confirmPassword} disabled={submitting} onChange={updateField} />
             <button type="button" className="mt-1 min-h-11 text-sm font-semibold text-indigo-700" aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)}>{showPassword ? 'Hide passwords' : 'Show passwords'}</button>
           </div>
           <button type="submit" disabled={submitting} className="btn btn-primary w-full">{submitting ? 'Creating your account...' : 'Create account'}</button>

@@ -3,7 +3,9 @@
 SLOPE (Self Learning & Optimized Personal Learning Environment) helps engineering
 students create personalized roadmaps, track learning progress, ask contextual
 study questions, and prepare for placements. Roadmaps use Gemini with curated
-resources and handwritten fallback plans when AI is unavailable.
+resources and handwritten fallback plans when AI is unavailable. Students can
+plan daily study sessions, take topic quizzes, adjust roadmaps using their results,
+and keep private notes, bookmarks, and opt-in reminders.
 
 ## Stack and layout
 
@@ -74,6 +76,10 @@ Development can start without MongoDB, but health returns 503 until connected.
 | Server | `CLIENT_URL` | One exact client origin; production example `https://slope-demo.vercel.app`. |
 | Server | `GEMINI_API_KEY` | Google AI Studio key; needed for AI roadmaps and chat. |
 | Server | `GEMINI_MODEL` | `gemini-2.5-flash` by default; change for an available model. |
+| Server | `RESEND_API_KEY` | Resend API key for password reset and reminder emails. |
+| Server | `EMAIL_FROM` | A verified Resend sender, e.g. `SLOPE <learning@your-domain.com>`. |
+| Server | `REMINDERS_ENABLED` | `true` enables the API's minute-by-minute reminder worker; default `false`. |
+| Server | `CRON_SECRET` | Optional random secret of at least 32 characters for the reminder scheduler endpoint. |
 | Client | `VITE_API_URL` | API base including `/api`; production Render HTTPS URL. |
 
 Keep secrets in the server environment only. Never commit `.env` files. Vite
@@ -161,6 +167,13 @@ production; a Vercel preview on a different origin will not automatically work.
 - Open Placement, test an accordion, and inspect the mobile menu at 360px width.
 - Refresh `/roadmap` and `/chat`; the SPA loads and the signed-in session remains.
 - Log out; protected routes redirect to login. Wrong-password login stays on its form.
+- Change account name, timezone, session length, and study days; refresh to verify persistence.
+- Use Forgot password, follow the emailed reset link, and log in with the new password.
+- Mark a daily task studied; confirm the roadmap and daily plan agree after refresh.
+- Submit a topic quiz, review explanations, and find the attempt under Saved results.
+- Preview and apply a roadmap adjustment; completed work remains and revision tasks appear.
+- Save a topic note and bookmark a resource; find both in My library after refresh.
+- Enable study reminders for a due time, confirm one in-app reminder, and mark it read.
 - Import `server/postman/SLOPE.postman_collection.json`; set `baseUrl` to the Render
   URL plus `/api`. Run once with a unique email; repeated runs can hit auth limits.
 
@@ -178,8 +191,141 @@ production; a Vercel preview on a different origin will not automatically work.
 | Chat 503 / fallback roadmap | Check server Gemini key, model access, quota, and provider status. |
 | HTTP 429 | Wait 15 minutes; auth is 20/IP and roadmap/chat sends are 30/user per window. |
 | HTTP 401 after JWT secret change | Sign in again; changing the secret invalidates existing tokens. |
+| Password recovery 503 | Set server `RESEND_API_KEY` and a verified `EMAIL_FROM`; redeploy the API. |
+| Preview apply 409 | Progress, quiz results, preferences, or active roadmap changed; create a fresh adjustment preview. |
+| Quiz 503 | No curated set covers this topic and Gemini is unavailable; retry after restoring AI access. |
+
+## Learning features
+
+### 1. Password reset and account settings
+
+Visit `/account` to edit your name, timezone, study days, preferred session length,
+and reminder preferences. Email is the account identifier and is read-only.
+Password changes require your current password and invalidate other sessions.
+
+The login page links to `/forgot-password`. Reset links contain a random token in
+the URL fragment, expire in 30 minutes, and work once. Only a SHA-256 hash is stored
+in MongoDB. Resetting a password invalidates all existing JWTs. Production responses
+do not reveal whether an address is registered and never return a reset token.
+
+Set `RESEND_API_KEY` and `EMAIL_FROM` on the server to enable real email delivery.
+Use a sender verified with Resend. Without these values, development/test mode shows
+an email-preview link; production recovery returns a configuration error.
+The mail transport uses native `fetch`; no extra runtime dependency is required.
+
+### 2. Daily study planning
+
+Visit `/study-plan` or select Today in navigation. The daily minute budget divides
+roadmap weekly availability across your selected study days. Tasks follow topic
+order, fit your preferred session length, and carry unfinished tasks from the
+previous seven days. Rest days have no assigned tasks.
+
+Marking a study task complete updates its roadmap topic; marking revision complete
+clears the revision flag without changing earlier completion. Estimates are guidance,
+not a measurement of time studied. Daily plans persist across refreshes and are
+refreshed when planning preferences or the roadmap schedule change. Future-day
+previews are tentative and recalculated when the date arrives; future tasks cannot
+be marked complete. Existing accounts and roadmaps receive defaults without a migration.
+
+### 3. Topic quizzes and saved results
+
+Visit `/quizzes` or select Check understanding under a roadmap topic. Each quiz has
+five multiple-choice questions and expires in 24 hours. Gemini generates topic-specific
+questions when available. The fallback bank covers all topics in the built-in Web,
+DSA, and AI/ML roadmaps, and names its foundation-practice coverage explicitly.
+Unsupported topics return 503 rather than unrelated questions.
+
+Answer keys stay server-side until submission. Submitted attempts are graded and
+saved once, including selected answers and explanations. Saved results remain
+available after generating a replacement roadmap. Quizzes do not automatically
+mark topics completed. Generation/submission is limited to 30 requests/user/15 minutes.
+
+### 4. Adaptive roadmap
+
+Select Adjust my plan on the roadmap or visit `/roadmap/adjust`. Choose your weekly
+availability and preview the proposed module schedule before applying it.
+The latest quiz per topic below 70% recommends a 20-minute revision session.
+Unfinished planned days in the past week add catch-up time. Remaining workload uses
+the selected session length and weekly availability; completed-topic timestamps,
+topic order, resources, notes, and quiz history are preserved.
+
+Previews expire in 30 minutes and are rejected if relevant progress, latest quiz
+results, preferences, or active roadmap change. Applying updates the existing
+roadmap and creates a new daily-plan schedule. Fresh AI generation retains its
+1–26 week range; adapted schedules can extend to 156 weeks if availability is low.
+
+### 5. Notes, bookmarks, and reminders
+
+Select Topic notes under any roadmap topic to create, edit, or delete its private
+plain-text note. Find and search notes in `/library`. Notes stay attached to the
+original topic even after a roadmap is replaced. Notes allow up to 6,000 characters
+and 8KB; resource bookmarks reference only items from the curated library.
+
+Save resource buttons are synchronized throughout the app. My library also shows
+study reminders and read/unread state. Reminders are off by default. They respect
+your timezone, selected study days, preferred reminder time, and unfinished tasks.
+There is at most one reminder per user per local date. Email delivery uses a database
+lease plus a Resend idempotency key, with up to three attempts and five-minute backoff.
+
+Set `REMINDERS_ENABLED=true` to run the background worker while the API is awake.
+Opening My library also checks your due reminder. Render's free service can sleep,
+so an always-running scheduler is needed for unattended on-time delivery. The job can
+be run from a scheduler with `npm --prefix server run reminders`, or by sending:
+
+```text
+POST https://<your-api>/api/library/reminders/run
+Authorization: Bearer <CRON_SECRET>
+```
+
+Use a dedicated `CRON_SECRET` of at least 32 characters, distinct from `JWT_SECRET`.
+Schedule checks every minute or every five minutes; later checks catch up on reminders
+still due that local day. Configure Resend for email; in-app reminders work without it.
+
+## Feature API reference
+
+All endpoints below require a user JWT except password recovery and the scheduler.
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| POST | `/api/auth/forgot-password` | Request a reset email with `{email}`. |
+| POST | `/api/auth/reset-password` | Consume `{token,password}`. |
+| PATCH | `/api/auth/account` | Save `{name,preferences}`. |
+| POST | `/api/auth/change-password` | Verify `{currentPassword,password}`; issue a replacement JWT. |
+| GET | `/api/study-plan?date=YYYY-MM-DD` | Get the selected daily plan; date defaults to today in user timezone. |
+| GET | `/api/study-plan/upcoming` | Get the next seven days' minute budgets. |
+| PATCH | `/api/study-plan/:planId/tasks/:taskId` | Set `{completed}` and update the underlying topic. |
+| POST | `/api/quizzes/start` | Start `{roadmapId,moduleIdx,topicIdx}`. |
+| GET | `/api/quizzes/:id` | Load an owned quiz and its saved result, if any. |
+| POST | `/api/quizzes/:id/submit` | Grade `{answers:[0,1,2,3,0]}`. |
+| GET | `/api/quizzes/attempts` | Get the latest 100 saved attempts; optional `roadmapId` filter. |
+| POST | `/api/adaptation/preview` | Preview `{hoursPerWeek}`. |
+| POST | `/api/adaptation/:id/apply` | Apply an owned, current preview. |
+| GET / PUT | `/api/library/notes/topic` | Read a topic reference in query; save reference plus `content` in body. |
+| GET | `/api/library/notes?search=...` | Search the latest 100 matching notes. |
+| DELETE | `/api/library/notes/:id` | Delete an owned note. |
+| GET | `/api/library/bookmarks` | List saved curated resources. |
+| PUT / DELETE | `/api/library/bookmarks/:resourceId` | Save/remove a resource. |
+| GET | `/api/library/reminders` | Check due reminder and list recent reminders. |
+| PATCH | `/api/library/reminders/:id/read` | Mark an owned reminder read. |
+| POST | `/api/library/reminders/run` | Run due reminders; uses `CRON_SECRET`, not a user JWT. |
+
+## Verification
+
+Use Node 22.23.2 and run:
+
+```bash
+npm --prefix server test
+npm --prefix client run build
+```
+
+The server suite starts an isolated temporary `mongod` process with a fresh test
+database. Install MongoDB locally so `mongod` is on PATH, or supply `TEST_MONGO_URI`
+for a dedicated test MongoDB server that permits creating/deleting `slope_test_*`
+databases. Tests never use the application's `MONGO_URI` or Gemini key. Email tests
+stub the provider transport and exercise real persistence, API validation, isolation,
+session invalidation, scoring, preview conflicts, scheduling, and delivery deduplication.
 
 ## Future Scope
 
-Adaptive re-planning, quizzes, RAG/embeddings, gamification, admin tooling,
-multilingual support, and notifications are future extensions.
+RAG/embeddings for uploaded study material, gamification, admin resource tooling,
+multiple active goals, study groups, and multilingual support are future extensions.

@@ -11,6 +11,13 @@ import Roadmap from './pages/Roadmap.jsx';
 import Chat from './pages/Chat.jsx';
 import Placement from './pages/Placement.jsx';
 import NotFound from './pages/NotFound.jsx';
+import PasswordRecovery from './pages/PasswordRecovery.jsx';
+import Account from './pages/Account.jsx';
+import StudyPlan from './pages/StudyPlan.jsx';
+import Quizzes from './pages/Quizzes.jsx';
+import AdaptiveRoadmap from './pages/AdaptiveRoadmap.jsx';
+import Library from './pages/Library.jsx';
+import NoteEditor from './pages/NoteEditor.jsx';
 
 const Dashboard = lazy(() => import('./pages/Dashboard.jsx'));
 const pageTitles = {
@@ -22,6 +29,13 @@ const pageTitles = {
   '/roadmap': 'Learning roadmap',
   '/chat': 'Study assistant',
   '/placement': 'Placement preparation',
+  '/account': 'Account settings',
+  '/study-plan': 'Daily study plan',
+  '/quizzes': 'Topic quizzes',
+  '/roadmap/adjust': 'Adjust roadmap',
+  '/library': 'Notes, bookmarks, and reminders',
+  '/forgot-password': 'Password recovery',
+  '/reset-password': 'Reset password',
 };
 
 export default function App() {
@@ -29,7 +43,7 @@ export default function App() {
   const previousPath = useRef(pathname);
 
   useEffect(() => {
-    document.title = `${pageTitles[pathname] || 'Page not found'} | SLOPE 2.0`;
+    document.title = `${pageTitles[pathname] || (pathname.startsWith('/notes/') ? 'Topic notes' : 'Page not found')} | SLOPE 2.0`;
     const changedPage = previousPath.current !== pathname;
     previousPath.current = pathname;
     const frame = requestAnimationFrame(() => {
@@ -49,7 +63,15 @@ export default function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<PasswordRecovery />} />
+          <Route path="/reset-password" element={<PasswordRecovery reset />} />
           <Route element={<ProtectedRoute />}>
+            <Route path="/account" element={<Account />} />
+            <Route path="/study-plan" element={<StudyPlan />} />
+            <Route path="/quizzes" element={<Quizzes />} />
+            <Route path="/roadmap/adjust" element={<AdaptiveRoadmap />} />
+            <Route path="/library" element={<Library />} />
+            <Route path="/notes/:roadmapId/:moduleIdx/:topicIdx" element={<NoteEditor />} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/dashboard" element={<Suspense fallback={<Loader message="Loading your dashboard..." />}><Dashboard /></Suspense>} />
             <Route path="/roadmap" element={<Roadmap />} />

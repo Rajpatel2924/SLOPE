@@ -11,6 +11,11 @@ import chatRoutes from './routes/chatRoutes.js';
 import progressRoutes from './routes/progressRoutes.js';
 import resourceRoutes from './routes/resourceRoutes.js';
 import roadmapRoutes from './routes/roadmapRoutes.js';
+import studyPlanRoutes from './routes/studyPlanRoutes.js';
+import quizRoutes from './routes/quizRoutes.js';
+import adaptationRoutes from './routes/adaptationRoutes.js';
+import libraryRoutes from './routes/libraryRoutes.js';
+import { startReminderWorker } from './services/reminderService.js';
 
 const app = express();
 const port = Number(process.env.PORT || 5000);
@@ -68,11 +73,18 @@ const authLimiter = rateLimit({
   },
 });
 
-app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/auth', (req, res, next) => {
+  const credentialRoute = ['/login', '/register', '/forgot-password', '/reset-password', '/change-password'].includes(req.path);
+  return credentialRoute ? authLimiter(req, res, next) : next();
+}, authRoutes);
 app.use('/api/roadmap', roadmapRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/resources', resourceRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/study-plan', studyPlanRoutes);
+app.use('/api/quizzes', quizRoutes);
+app.use('/api/adaptation', adaptationRoutes);
+app.use('/api/library', libraryRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
@@ -112,6 +124,8 @@ export async function startServer() {
   return new Promise((resolve, reject) => {
     const server = app.listen(port, '0.0.0.0', () => {
       console.log(`SLOPE API listening on port ${port}`);
+      const stopReminders = startReminderWorker();
+      server.once('close', stopReminders);
       resolve(server);
     });
     server.once('error', reject);

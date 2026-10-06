@@ -62,6 +62,11 @@ export function AuthProvider({ children }) {
     return authenticate('/auth/register', credentials);
   }
 
+  function updateUser(nextUser, token) {
+    if (token) localStorage.setItem(TOKEN_KEY, token);
+    setUser(nextUser);
+  }
+
   function logout() {
     localStorage.removeItem(TOKEN_KEY);
     setUser(null);
@@ -69,7 +74,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, sessionError, refreshSession }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, sessionError, refreshSession, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

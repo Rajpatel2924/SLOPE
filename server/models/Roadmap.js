@@ -25,6 +25,8 @@ const topicSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    reviewRequired: { type: Boolean, default: false },
+    reviewReason: { type: String, default: '' },
   },
   { _id: false },
 );
@@ -83,13 +85,15 @@ const roadmapSchema = new mongoose.Schema(
       type: Number,
       required: true,
       min: 1,
-      max: 26,
+      max: 156,
     },
     source: {
       type: String,
       enum: ['ai', 'fallback'],
       required: true,
     },
+    scheduleVersion: { type: Number, default: 0 },
+    adaptedAt: Date,
     modules: {
       type: [moduleSchema],
       required: true,

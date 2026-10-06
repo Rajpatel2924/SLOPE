@@ -1,6 +1,7 @@
 import ResourceLink from './ResourceLink.jsx';
+import { Link } from 'react-router-dom';
 
-export default function ModuleAccordion({ module, moduleIdx, open, onToggleOpen, onToggleTopic, pendingTopics }) {
+export default function ModuleAccordion({ roadmapId, module, moduleIdx, open, onToggleOpen, onToggleTopic, pendingTopics }) {
   const completed = module.topics.filter((topic) => topic.completed).length;
   const percent = module.topics.length ? Math.round(completed / module.topics.length * 100) : 0;
   const panelId = `module-panel-${moduleIdx}`;
@@ -34,10 +35,12 @@ export default function ModuleAccordion({ module, moduleIdx, open, onToggleOpen,
                   <span className={`font-semibold ${topic.completed ? 'text-slate-500 line-through' : 'text-slate-900'}`}>{topic.title}</span>
                 </label>
                 <p className="mt-1 text-sm leading-relaxed text-slate-600">{topic.description}</p>
+                {topic.reviewRequired && <p className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Revision recommended: {topic.reviewReason}</p>}
                 <p className="mt-2 text-xs font-medium text-indigo-700" aria-live="polite">{pending ? 'Saving...' : topic.completed ? 'Completed' : 'Ready to learn'}</p>
                 <div className="mt-4 grid gap-2 lg:grid-cols-2">
                   {topic.resources.map((resource) => <ResourceLink key={resource.id} resource={resource} />)}
                 </div>
+                <div className="mt-4 flex flex-wrap gap-3"><Link to={`/quizzes?module=${moduleIdx}&topic=${topicIdx}`} className="btn btn-secondary">Check understanding</Link><Link to={`/notes/${roadmapId}/${moduleIdx}/${topicIdx}`} className="btn btn-secondary">Topic notes</Link></div>
               </li>
             );
           })}

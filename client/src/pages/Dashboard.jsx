@@ -64,7 +64,7 @@ export default function Dashboard() {
     <section className="page-shell space-y-6 py-10 sm:py-14">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div><p className="eyebrow">Learning dashboard</p><h1 className="mt-3 text-3xl font-bold tracking-tight">Welcome back, {user.name.split(' ')[0]}</h1><p className="mt-3 text-slate-600">{roadmap.goal} · {roadmap.hoursPerWeek} hours/week · {roadmap.totalWeeks}-week plan</p></div>
-        <Link to="/roadmap" className="btn btn-secondary">View roadmap</Link>
+        <div className="flex flex-wrap gap-3"><Link to="/study-plan" className="btn btn-primary">Today's study plan</Link><Link to="/roadmap" className="btn btn-secondary">View roadmap</Link></div>
       </header>
       <div className="card"><ProgressBar percent={progress.overallPercent} label="Overall progress" /><p className="mt-3 text-sm text-slate-500">{progress.completedTopics} of {progress.totalTopics} topics completed</p></div>
       <dl className="grid gap-4 sm:grid-cols-3">

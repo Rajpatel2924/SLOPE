@@ -58,6 +58,7 @@ export default function Login() {
           </div>
           <button type="submit" disabled={submitting} className="btn btn-primary w-full">{submitting ? 'Signing you in...' : 'Log in'}</button>
         </form>
+        <p className="mt-4 text-center text-sm"><Link to="/forgot-password" className="font-semibold text-indigo-700 underline">Forgot your password?</Link></p>
         <p className="mt-6 text-center text-sm text-slate-600">New to SLOPE? <Link to="/register" className="font-semibold text-indigo-700 underline underline-offset-4">Create an account</Link></p>
       </div>
     </section>

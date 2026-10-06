@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import mongoose from 'mongoose';
 
 function authError(message = 'Authentication required.') {
   const error = new Error(message);
@@ -31,14 +32,14 @@ export async function requireAuth(req, res, next) {
     return next(authError('Invalid or expired token.'));
   }
 
-  if (!payload || typeof payload !== 'object' || !payload.sub) {
+  if (!payload || typeof payload !== 'object' || !mongoose.isObjectIdOrHexString(payload.sub)) {
     return next(authError('Invalid or expired token.'));
   }
 
   try {
-    const user = await User.findById(payload.sub).select('_id name email createdAt');
+    const user = await User.findById(payload.sub);
 
-    if (!user) {
+    if (!user || (payload.version || 0) !== (user.tokenVersion || 0)) {
       return next(authError('Invalid or expired token.'));
     }
 

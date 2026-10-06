@@ -1,4 +1,5 @@
 import Roadmap from '../models/Roadmap.js';
+import { httpError } from '../services/httpError.js';
 import {
   buildRoadmap,
   calculateProgress,
@@ -53,6 +54,9 @@ export async function toggleTopic(req, res, next) {
     if (!roadmap) {
       return next(notFoundError());
     }
+    if (req.body.roadmapId && req.body.roadmapId !== roadmap.id) {
+      throw httpError(409, 'Your active roadmap changed. Refresh before updating a topic.');
+    }
 
     const { moduleIdx, topicIdx } = req.params;
     const module = roadmap.modules[Number(moduleIdx)];
@@ -64,11 +68,14 @@ export async function toggleTopic(req, res, next) {
       return next(error);
     }
 
-    topic.completed = req.body.completed;
-    topic.completedAt = topic.completed ? new Date() : null;
-    await roadmap.save();
+    const updated = await Roadmap.findOneAndUpdate({ _id: roadmap._id, userId: req.user._id }, {
+      $set: {
+        [`modules.${moduleIdx}.topics.${topicIdx}.completed`]: req.body.completed,
+        [`modules.${moduleIdx}.topics.${topicIdx}.completedAt`]: req.body.completed ? new Date() : null,
+      }, $inc: { __v: 1 },
+    }, { new: true });
 
-    return res.json({ progress: calculateProgress(roadmap) });
+    return res.json({ progress: calculateProgress(updated) });
   } catch (error) {
     return next(error);
   }

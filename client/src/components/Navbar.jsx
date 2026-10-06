@@ -29,15 +29,19 @@ export default function Navbar() {
         <button ref={menuButton} type="button" className="btn btn-secondary lg:hidden" aria-expanded={open} aria-controls="site-navigation" onClick={() => setOpen(!open)}>
           {open ? 'Close menu' : 'Menu'}
         </button>
-        <nav id="site-navigation" aria-label="Main navigation" className={`${open ? 'flex' : 'hidden'} w-full flex-col gap-2 lg:flex lg:w-auto lg:flex-row lg:items-center`}>
+        <nav id="site-navigation" aria-label="Main navigation" className={`${open ? 'flex' : 'hidden'} w-full flex-col gap-2 lg:flex lg:w-auto lg:min-w-0 lg:flex-1 lg:flex-row lg:flex-wrap lg:items-center lg:justify-end`}>
           <NavLink to="/" end className={navClass}>Home</NavLink>
           <Link to="/#resources" className="rounded-lg px-3 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-100">Resources</Link>
           {!loading && (user ? (
             <>
               <NavLink to="/dashboard" className={navClass}>Dashboard</NavLink>
+              <NavLink to="/study-plan" className={navClass}>Today</NavLink>
               <NavLink to="/roadmap" className={navClass}>Roadmap</NavLink>
+              <NavLink to="/quizzes" className={navClass}>Quizzes</NavLink>
+              <NavLink to="/library" className={navClass}>My library</NavLink>
               <NavLink to="/chat" className={navClass}>Study assistant</NavLink>
               <NavLink to="/placement" className={navClass}>Placement</NavLink>
+              <NavLink to="/account" className={navClass}>Account</NavLink>
               <button type="button" onClick={signOut} className="btn btn-secondary">Log out</button>
             </>
           ) : (

@@ -8,6 +8,7 @@ import {
 } from '../controllers/roadmapController.js';
 import { requireAuth } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
+import { objectIdSchema } from '../middleware/schemas.js';
 
 const router = Router();
 
@@ -25,6 +26,7 @@ const topicParamsSchema = z.object({
 
 const topicBodySchema = z.object({
   completed: z.boolean(),
+  roadmapId: objectIdSchema.optional(),
 }).strict();
 
 const roadmapGenerateLimiter = rateLimit({

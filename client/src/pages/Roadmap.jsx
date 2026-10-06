@@ -89,7 +89,7 @@ export default function Roadmap() {
       completed, completedAt: completed ? new Date().toISOString() : null,
     }));
     try {
-      await api.patch(`/roadmap/topic/${moduleIdx}/${topicIdx}`, { completed }, { signal: controller.signal });
+      await api.patch(`/roadmap/topic/${moduleIdx}/${topicIdx}`, { completed, roadmapId }, { signal: controller.signal });
     } catch (requestError) {
       if (!controller.signal.aborted) {
         // Restore only this topic; preserve any other in-flight checkbox changes.
@@ -126,14 +126,14 @@ export default function Roadmap() {
     <section className="page-shell space-y-6 py-10 sm:py-14">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div><p className="eyebrow">Your learning roadmap</p><h1 className="mt-3 text-3xl font-bold tracking-tight">{roadmap.goal}</h1><p className="mt-3 text-sm text-slate-600"><span className="capitalize">{roadmap.level}</span> · {roadmap.hoursPerWeek} hours/week · {roadmap.totalWeeks} weeks</p></div>
-        <button type="button" onClick={regenerate} disabled={pendingTopics.size > 0} className="btn btn-secondary">Regenerate roadmap</button>
+        <div className="flex flex-wrap gap-3"><Link to="/roadmap/adjust" className="btn btn-primary">Adjust my plan</Link><button type="button" onClick={regenerate} disabled={pendingTopics.size > 0} className="btn btn-secondary">Regenerate roadmap</button></div>
       </header>
       {roadmap.source === 'fallback' && <p role="status" className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-900">{state?.notice || 'AI generation was unavailable, so this path uses our curated fallback roadmap. You can start learning right away.'}</p>}
       <div className="card"><ProgressBar percent={percent} label="Overall progress" /><p className="mt-3 text-sm text-slate-500">{completed} of {topics.length} topics completed</p></div>
       {saveError && <div className="space-y-2"><p className="text-sm font-semibold text-slate-700">Your topic update could not be saved. The checkbox has been restored.</p><ErrorMessage error={saveError} /></div>}
       <div className="space-y-4">
         {roadmap.modules.map((module, moduleIdx) => (
-          <ModuleAccordion key={`${roadmap.id}-${moduleIdx}`} module={module} moduleIdx={moduleIdx} open={openModules.has(moduleIdx)} pendingTopics={pendingTopics} onToggleTopic={toggleTopic} onToggleOpen={() => setOpenModules((current) => { const next = new Set(current); if (next.has(moduleIdx)) next.delete(moduleIdx); else next.add(moduleIdx); return next; })} />
+          <ModuleAccordion key={`${roadmap.id}-${moduleIdx}`} roadmapId={roadmap.id} module={module} moduleIdx={moduleIdx} open={openModules.has(moduleIdx)} pendingTopics={pendingTopics} onToggleTopic={toggleTopic} onToggleOpen={() => setOpenModules((current) => { const next = new Set(current); if (next.has(moduleIdx)) next.delete(moduleIdx); else next.add(moduleIdx); return next; })} />
         ))}
       </div>
       <Link to="/dashboard" className="btn btn-secondary">View progress dashboard →</Link>
