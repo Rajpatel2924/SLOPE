@@ -1,0 +1,322 @@
+[
+  {
+    "id": "r1",
+    "title": "MDN HTML learning area",
+    "topic": "html",
+    "level": "beginner",
+    "type": "docs",
+    "url": "https://developer.mozilla.org/en-US/docs/Learn/HTML"
+  },
+  {
+    "id": "r2",
+    "title": "MDN CSS learning area",
+    "topic": "css",
+    "level": "beginner",
+    "type": "docs",
+    "url": "https://developer.mozilla.org/en-US/docs/Learn/CSS"
+  },
+  {
+    "id": "r3",
+    "title": "MDN JavaScript guide",
+    "topic": "javascript",
+    "level": "beginner",
+    "type": "docs",
+    "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide"
+  },
+  {
+    "id": "r4",
+    "title": "React Learn",
+    "topic": "react",
+    "level": "intermediate",
+    "type": "docs",
+    "url": "https://react.dev/learn"
+  },
+  {
+    "id": "r5",
+    "title": "Introduction to Node.js",
+    "topic": "node",
+    "level": "intermediate",
+    "type": "docs",
+    "url": "https://nodejs.org/en/learn/getting-started/introduction-to-nodejs"
+  },
+  {
+    "id": "r6",
+    "title": "Express starter guide",
+    "topic": "express",
+    "level": "intermediate",
+    "type": "docs",
+    "url": "https://expressjs.com/en/starter/installing.html"
+  },
+  {
+    "id": "r7",
+    "title": "MongoDB manual introduction",
+    "topic": "mongodb",
+    "level": "intermediate",
+    "type": "docs",
+    "url": "https://www.mongodb.com/docs/manual/introduction/"
+  },
+  {
+    "id": "r8",
+    "title": "Pro Git book",
+    "topic": "git",
+    "level": "beginner",
+    "type": "course",
+    "url": "https://git-scm.com/book/en/v2"
+  },
+  {
+    "id": "r9",
+    "title": "The Python tutorial",
+    "topic": "python",
+    "level": "beginner",
+    "type": "docs",
+    "url": "https://docs.python.org/3/tutorial/"
+  },
+  {
+    "id": "r10",
+    "title": "Array data structure",
+    "topic": "arrays",
+    "level": "beginner",
+    "type": "article",
+    "url": "https://www.geeksforgeeks.org/dsa/array-data-structure/"
+  },
+  {
+    "id": "r11",
+    "title": "String data structure",
+    "topic": "strings",
+    "level": "beginner",
+    "type": "article",
+    "url": "https://www.geeksforgeeks.org/dsa/string-data-structure/"
+  },
+  {
+    "id": "r12",
+    "title": "Linked list data structure",
+    "topic": "linked-lists",
+    "level": "beginner",
+    "type": "article",
+    "url": "https://www.geeksforgeeks.org/data-structures/linked-list/"
+  },
+  {
+    "id": "r13",
+    "title": "Binary tree data structure",
+    "topic": "trees",
+    "level": "intermediate",
+    "type": "article",
+    "url": "https://www.geeksforgeeks.org/dsa/binary-tree-data-structure/"
+  },
+  {
+    "id": "r14",
+    "title": "Graph data structure and algorithms",
+    "topic": "graphs",
+    "level": "intermediate",
+    "type": "article",
+    "url": "https://www.geeksforgeeks.org/graph-data-structure-and-algorithms/"
+  },
+  {
+    "id": "r15",
+    "title": "Dynamic programming",
+    "topic": "dynamic-programming",
+    "level": "advanced",
+    "type": "article",
+    "url": "https://www.geeksforgeeks.org/dynamic-programming/"
+  },
+  {
+    "id": "r16",
+    "title": "Sorting algorithms",
+    "topic": "sorting",
+    "level": "beginner",
+    "type": "article",
+    "url": "https://www.geeksforgeeks.org/sorting-algorithms/"
+  },
+  {
+    "id": "r17",
+    "title": "Searching algorithms",
+    "topic": "searching",
+    "level": "beginner",
+    "type": "article",
+    "url": "https://www.geeksforgeeks.org/searching-algorithms/"
+  },
+  {
+    "id": "r18",
+    "title": "Asymptotic analysis and Big-O",
+    "topic": "big-o",
+    "level": "beginner",
+    "type": "article",
+    "url": "https://www.geeksforgeeks.org/analysis-of-algorithms-set-1-asymptotic-analysis/"
+  },
+  {
+    "id": "r19",
+    "title": "SQL tutorial",
+    "topic": "sql",
+    "level": "beginner",
+    "type": "docs",
+    "url": "https://www.w3schools.com/sql/"
+  },
+  {
+    "id": "r20",
+    "title": "Object-oriented programming concepts",
+    "topic": "oop",
+    "level": "intermediate",
+    "type": "article",
+    "url": "https://www.geeksforgeeks.org/object-oriented-programming-oops-concept-in-java/"
+  },
+  {
+    "id": "r21",
+    "title": "Operating systems tutorial",
+    "topic": "operating-systems",
+    "level": "intermediate",
+    "type": "course",
+    "url": "https://www.geeksforgeeks.org/operating-systems/"
+  },
+  {
+    "id": "r22",
+    "title": "DBMS tutorial",
+    "topic": "dbms",
+    "level": "intermediate",
+    "type": "course",
+    "url": "https://www.geeksforgeeks.org/dbms/"
+  },
+  {
+    "id": "r23",
+    "title": "Computer networks tutorial",
+    "topic": "computer-networks",
+    "level": "intermediate",
+    "type": "course",
+    "url": "https://www.geeksforgeeks.org/computer-network-tutorials/"
+  },
+  {
+    "id": "r24",
+    "title": "Quantitative aptitude practice",
+    "topic": "aptitude-quant",
+    "level": "beginner",
+    "type": "practice",
+    "url": "https://www.indiabix.com/aptitude/questions-and-answers/"
+  },
+  {
+    "id": "r25",
+    "title": "Logical reasoning practice",
+    "topic": "logical-reasoning",
+    "level": "beginner",
+    "type": "practice",
+    "url": "https://www.indiabix.com/logical-reasoning/questions-and-answers/"
+  },
+  {
+    "id": "r26",
+    "title": "Verbal ability practice",
+    "topic": "verbal-ability",
+    "level": "beginner",
+    "type": "practice",
+    "url": "https://www.indiabix.com/verbal-ability/questions-and-answers/"
+  },
+  {
+    "id": "r27",
+    "title": "Create a strong resume",
+    "topic": "resume",
+    "level": "beginner",
+    "type": "article",
+    "url": "https://careerservices.fas.harvard.edu/resources/create-a-strong-resume/"
+  },
+  {
+    "id": "r28",
+    "title": "Software developer interview preparation",
+    "topic": "interview-preparation",
+    "level": "intermediate",
+    "type": "article",
+    "url": "https://www.geeksforgeeks.org/interview-preparation-for-software-developers/"
+  },
+  {
+    "id": "r29",
+    "title": "Kaggle intro to machine learning",
+    "topic": "machine-learning",
+    "level": "beginner",
+    "type": "course",
+    "url": "https://www.kaggle.com/learn/intro-to-machine-learning"
+  },
+  {
+    "id": "r30",
+    "title": "Build your own X project ideas",
+    "topic": "project-practice",
+    "level": "advanced",
+    "type": "practice",
+    "url": "https://github.com/codecrafters-io/build-your-own-x"
+  },
+  {
+    "id": "r31",
+    "title": "LeetCode problem set",
+    "topic": "dsa-practice",
+    "level": "intermediate",
+    "type": "practice",
+    "url": "https://leetcode.com/problemset/"
+  },
+  {
+    "id": "r32",
+    "title": "HackerRank SQL practice",
+    "topic": "sql-practice",
+    "level": "intermediate",
+    "type": "practice",
+    "url": "https://www.hackerrank.com/domains/sql"
+  },
+  {
+    "id": "r33",
+    "title": "CS50x introduction to computer science",
+    "topic": "computer-science-foundations",
+    "level": "beginner",
+    "type": "course",
+    "url": "https://cs50.harvard.edu/x/"
+  },
+  {
+    "id": "r34",
+    "title": "freeCodeCamp curriculum",
+    "topic": "full-stack-development",
+    "level": "beginner",
+    "type": "course",
+    "url": "https://www.freecodecamp.org/learn/"
+  },
+  {
+    "id": "r35",
+    "title": "NeetCode interview roadmap",
+    "topic": "dsa-roadmap",
+    "level": "intermediate",
+    "type": "course",
+    "url": "https://neetcode.io/roadmap"
+  },
+  {
+    "id": "r36",
+    "title": "GitHub Skills courses",
+    "topic": "github",
+    "level": "beginner",
+    "type": "course",
+    "url": "https://skills.github.com/"
+  },
+  {
+    "id": "r37",
+    "title": "React thinking in React",
+    "topic": "react-projects",
+    "level": "intermediate",
+    "type": "docs",
+    "url": "https://react.dev/learn/thinking-in-react"
+  },
+  {
+    "id": "r38",
+    "title": "MongoDB University learning catalog",
+    "topic": "mongodb-practice",
+    "level": "intermediate",
+    "type": "course",
+    "url": "https://learn.mongodb.com/"
+  },
+  {
+    "id": "r39",
+    "title": "Kaggle Python course",
+    "topic": "python-practice",
+    "level": "beginner",
+    "type": "course",
+    "url": "https://www.kaggle.com/learn/python"
+  },
+  {
+    "id": "r40",
+    "title": "freeCodeCamp JavaScript algorithms curriculum",
+    "topic": "javascript-practice",
+    "level": "intermediate",
+    "type": "practice",
+    "url": "https://www.freecodecamp.org/learn/javascript-algorithms-and-data-structures-v8/"
+  }
+]

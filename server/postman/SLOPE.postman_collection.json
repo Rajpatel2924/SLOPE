@@ -1,0 +1,170 @@
+{
+  "info": {
+    "name": "SLOPE 2.0 API",
+    "description": "Run in order. Register creates a unique demo email and saves the token; Login refreshes it. Roadmap generation accepts AI or fallback output. Chat may return 503 if Gemini is unavailable. Logout confirms client-side token removal. Set baseUrl to your API URL including /api.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000/api", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "name", "value": "SLOPE Student", "type": "string" },
+    { "key": "email", "value": "slope-demo@example.com", "type": "string" },
+    { "key": "password", "value": "SlopeDemo123!", "type": "string" },
+    { "key": "moduleIdx", "value": "0", "type": "string" },
+    { "key": "topicIdx", "value": "0", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "event": [{
+    "listen": "test",
+    "script": { "type": "text/javascript", "exec": [
+      "pm.test('Response is JSON', () => pm.response.to.be.json);",
+      "if (pm.response.code >= 400) {",
+      "  pm.test('Consistent error format', () => {",
+      "    const error = pm.response.json().error;",
+      "    pm.expect(error.message).to.be.a('string');",
+      "    pm.expect(error.details).to.be.an('array');",
+      "  });",
+      "}"
+    ] }
+  }],
+  "item": [
+    {
+      "name": "Health",
+      "request": { "method": "GET", "auth": { "type": "noauth" }, "url": "{{baseUrl}}/health" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Healthy API', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().status).to.eql('ok'); });"
+      ] } }]
+    },
+    {
+      "name": "All resources",
+      "request": { "method": "GET", "auth": { "type": "noauth" }, "url": "{{baseUrl}}/resources" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('40 curated resources', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().resources).to.have.lengthOf(40); });"
+      ] } }]
+    },
+    {
+      "name": "Filtered resources",
+      "request": { "method": "GET", "auth": { "type": "noauth" }, "url": "{{baseUrl}}/resources?topic=javascript" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Topic filter', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().resources.length).to.be.above(0); });"
+      ] } }]
+    },
+    {
+      "name": "Register",
+      "event": [
+        { "listen": "prerequest", "script": { "exec": ["pm.collectionVariables.set('email', 'slope-demo-' + Date.now() + '@example.com');"] } },
+        { "listen": "test", "script": { "exec": [
+          "pm.test('Registered', () => pm.response.to.have.status(201));",
+          "if (pm.response.code === 201) { pm.collectionVariables.set('token', pm.response.json().token); }",
+          "pm.test('Password hash omitted', () => pm.expect(pm.response.json().user).not.to.have.property('passwordHash'));"
+        ] } }
+      ],
+      "request": {
+        "method": "POST", "auth": { "type": "noauth" }, "url": "{{baseUrl}}/auth/register",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"name\":\"{{name}}\",\"email\":\"{{email}}\",\"password\":\"{{password}}\"}", "options": { "raw": { "language": "json" } } }
+      }
+    },
+    {
+      "name": "Login (save token)",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Logged in', () => pm.response.to.have.status(200));",
+        "if (pm.response.code === 200) {",
+        "  pm.collectionVariables.set('token', pm.response.json().token);",
+        "  pm.test('JWT returned', () => pm.expect(pm.response.json().token).to.be.a('string'));",
+        "}"
+      ] } }],
+      "request": {
+        "method": "POST", "auth": { "type": "noauth" }, "url": "{{baseUrl}}/auth/login",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"email\":\"{{email}}\",\"password\":\"{{password}}\"}", "options": { "raw": { "language": "json" } } }
+      }
+    },
+    {
+      "name": "Current user",
+      "request": { "method": "GET", "url": "{{baseUrl}}/auth/me" },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Authenticated', () => pm.response.to.have.status(200));"] } }]
+    },
+    {
+      "name": "Chat history before roadmap",
+      "request": { "method": "GET", "url": "{{baseUrl}}/chat" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Empty history is valid', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().messages).to.be.an('array'); });"
+      ] } }]
+    },
+    {
+      "name": "Generate roadmap",
+      "request": {
+        "method": "POST", "url": "{{baseUrl}}/roadmap/generate",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"goal\":\"Web Developer\",\"level\":\"beginner\",\"hoursPerWeek\":10,\"totalWeeks\":8}", "options": { "raw": { "language": "json" } } }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Roadmap saved', () => pm.response.to.have.status(201));",
+        "pm.test('AI or fallback source', () => pm.expect(pm.response.json().roadmap.source).to.be.oneOf(['ai', 'fallback']));"
+      ] } }]
+    },
+    {
+      "name": "Latest roadmap",
+      "request": { "method": "GET", "url": "{{baseUrl}}/roadmap" },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Roadmap available', () => pm.response.to.have.status(200));"] } }]
+    },
+    {
+      "name": "Complete topic",
+      "request": {
+        "method": "PATCH", "url": "{{baseUrl}}/roadmap/topic/{{moduleIdx}}/{{topicIdx}}",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"completed\":true}", "options": { "raw": { "language": "json" } } }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Topic completed', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().progress.completedTopics).to.be.at.least(1); });"
+      ] } }]
+    },
+    {
+      "name": "Progress",
+      "request": { "method": "GET", "url": "{{baseUrl}}/progress" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Progress math', () => { pm.response.to.have.status(200); const p = pm.response.json(); pm.expect(p.overallPercent).to.eql(Math.round(p.completedTopics / p.totalTopics * 100)); });"
+      ] } }]
+    },
+    {
+      "name": "Ask study assistant",
+      "request": {
+        "method": "POST", "url": "{{baseUrl}}/chat",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"message\":\"Explain my current topic simply, with a small example.\"}", "options": { "raw": { "language": "json" } } }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Reply or friendly AI outage', () => pm.expect(pm.response.code).to.be.oneOf([200, 503]));",
+        "if (pm.response.code === 200) pm.test('Reply received', () => pm.expect(pm.response.json().reply).to.be.a('string').and.not.empty);"
+      ] } }]
+    },
+    {
+      "name": "Chat history after question",
+      "request": { "method": "GET", "url": "{{baseUrl}}/chat" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('History capped', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().messages.length).to.be.at.most(50); });"
+      ] } }]
+    },
+    {
+      "name": "Reject empty chat message",
+      "request": {
+        "method": "POST", "url": "{{baseUrl}}/chat",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"message\":\"   \"}", "options": { "raw": { "language": "json" } } }
+      },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Validation error', () => pm.response.to.have.status(400));"] } }]
+    },
+    {
+      "name": "Logout",
+      "request": { "method": "POST", "url": "{{baseUrl}}/auth/logout" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Logout acknowledged', () => pm.response.to.have.status(200));",
+        "if (pm.response.code === 200) pm.collectionVariables.set('token', '');"
+      ] } }]
+    }
+  ]
+}
