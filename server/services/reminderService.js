@@ -39,8 +39,7 @@ export async function deliverDueReminder(user, now = new Date()) {
   if (!leased) return { due: true, emailed: false };
   try {
     await sendEmail({ to: user.email, subject: 'Your SLOPE study reminder',
-      text: `${message}\n\nOpen your daily plan: ${new URL('/study-plan', process.env.CLIENT_URL || 'http://localhost:5173')}\n\nYou can turn off reminders in Account settings.`,
-      idempotencyKey: `slope-reminder-${user.id}-${date}` });
+      text: `${message}\n\nOpen your daily plan: ${new URL('/study-plan', process.env.CLIENT_URL || 'http://localhost:5173')}\n\nYou can turn off reminders in Account settings.` });
     await Reminder.updateOne({ _id: reminder._id }, { $set: { emailSentAt: new Date() }, $unset: { lockUntil: 1, nextAttemptAt: 1 } });
     return { due: true, emailed: true };
   } catch {

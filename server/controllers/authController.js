@@ -29,6 +29,15 @@ function createToken(user) {
   );
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
 export async function register(req, res, next) {
   try {
     const { name, email, password } = req.body;
@@ -106,10 +115,12 @@ export async function forgotPassword(req, res, next) {
       if (!emailConfigured() && canPreview) response.previewUrl = resetUrl.toString();
       else {
         try {
+          const resetUrlText = resetUrl.toString();
           await sendEmail({
             to: user.email,
-            subject: 'Reset your SLOPE password',
-            text: `Use this link within 30 minutes to reset your password:\n${resetUrl}\n\nIf you did not request this, ignore this email.`,
+            subject: 'Reset your SLOPE 2.0 password',
+            text: `SLOPE 2.0\n\nReset your password\n\nWe received a request to reset the password for your SLOPE 2.0 account.\n\nUse the link below to create a new password:\n\n${resetUrlText}\n\nThis link expires in 30 minutes.\n\nIf you did not request a password reset, you can safely ignore this email.`,
+            html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#172554;max-width:600px;margin:0 auto;padding:24px"><p style="font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#4f46e5">SLOPE 2.0</p><h1 style="font-size:28px;margin:16px 0 8px">Reset your password</h1><p>We received a request to reset the password for your SLOPE 2.0 account.</p><p style="margin:28px 0"><a href="${escapeHtml(resetUrlText)}" style="background:#4f46e5;border-radius:8px;color:#fff;display:inline-block;padding:12px 20px;text-decoration:none;font-weight:700">Reset your password</a></p><p>This link expires in <strong>30 minutes</strong>.</p><p>If the button does not work, copy and paste this URL into your browser:</p><p style="word-break:break-all"><a href="${escapeHtml(resetUrlText)}">${escapeHtml(resetUrlText)}</a></p><p style="color:#475569">If you did not request a password reset, you can safely ignore this email.</p></div>`,
           });
         } catch {
           await User.updateOne({ _id: user._id, resetTokenHash: hash }, {

@@ -10,7 +10,7 @@ and keep private notes, bookmarks, and opt-in reminders.
 ## Stack and layout
 
 - Client: JavaScript, React 19, Vite 7, React Router, Axios, Tailwind 4, Recharts.
-- API: Node.js 22 LTS, Express 5, Mongoose, JWT, bcryptjs, Zod, `@google/genai`.
+- API: Node.js 22 LTS, Express 5, Mongoose, JWT, bcryptjs, Zod, `@google/genai`, Nodemailer.
 - Hosting: Vercel client, Render API, MongoDB Atlas database.
 
 ```text
@@ -76,8 +76,9 @@ Development can start without MongoDB, but health returns 503 until connected.
 | Server | `CLIENT_URL` | One exact client origin; production example `https://slope-demo.vercel.app`. |
 | Server | `GEMINI_API_KEY` | Google AI Studio key; needed for AI roadmaps and chat. |
 | Server | `GEMINI_MODEL` | `gemini-2.5-flash` by default; change for an available model. |
-| Server | `RESEND_API_KEY` | Resend API key for password reset and reminder emails. |
-| Server | `EMAIL_FROM` | A verified Resend sender, e.g. `SLOPE <learning@your-domain.com>`. |
+| Server | `EMAIL_USER` | Gmail address used by SLOPE to send password-reset and reminder emails. |
+| Server | `EMAIL_APP_PASSWORD` | Google App Password for `EMAIL_USER`; never use the normal Gmail password. |
+| Server | `EMAIL_FROM` | Sender shown in email, e.g. `SLOPE 2.0 <your-slope-gmail@gmail.com>`. Falls back to `EMAIL_USER`. |
 | Server | `REMINDERS_ENABLED` | `true` enables the API's minute-by-minute reminder worker; default `false`. |
 | Server | `CRON_SECRET` | Optional random secret of at least 32 characters for the reminder scheduler endpoint. |
 | Client | `VITE_API_URL` | API base including `/api`; production Render HTTPS URL. |
@@ -86,6 +87,26 @@ Keep secrets in the server environment only. Never commit `.env` files. Vite
 variables are public and embedded during build; changing them requires redeploying
 the client. A missing/invalid Gemini key triggers roadmap fallback and a friendly
 chat 503; it does not prevent server startup. Restart local servers after env edits.
+
+### Gmail SMTP email setup
+
+Password-reset email uses Gmail SMTP through Nodemailer. For local development and
+the Render API:
+
+1. Use a Gmail account for SLOPE email delivery.
+2. Enable Google 2-Step Verification on that account.
+3. Create a Google App Password. This is not the normal Gmail password.
+4. Add these variables to the server environment only:
+
+```env
+EMAIL_USER=your-slope-gmail@gmail.com
+EMAIL_APP_PASSWORD=your-google-app-password
+EMAIL_FROM=SLOPE 2.0 <your-slope-gmail@gmail.com>
+```
+
+Never commit `.env` or place `EMAIL_APP_PASSWORD` in GitHub, the client, or Vercel.
+Gmail SMTP is intended for SLOPE's low-volume/demo usage; a transactional email
+provider and verified domain may be preferable for large-scale production.
 
 ## Deploy: Atlas → Render → Vercel
 
@@ -119,7 +140,8 @@ will import this same repository. No Git remote is preconfigured by the app.
    - Runtime: Node; Root Directory: `server`; Plan: Free for a demo.
     - Build Command: `npm ci`; Start Command: `node index.js`.
    - Health Check Path: `/api/health`.
-2. Add server variables from the table. Set `NODE_ENV=production` and
+2. Add server variables from the table, including `EMAIL_USER`,
+   `EMAIL_APP_PASSWORD`, and `EMAIL_FROM`. Set `NODE_ENV=production` and
    `NODE_VERSION=22.23.2`; use the generated JWT secret. Do not override `PORT`.
 3. Before Vercel exists, use `CLIENT_URL=http://localhost:5173` temporarily.
    Add your Gemini key to test live AI/chat, or omit it for fallback-only operation.
@@ -191,7 +213,7 @@ production; a Vercel preview on a different origin will not automatically work.
 | Chat 503 / fallback roadmap | Check server Gemini key, model access, quota, and provider status. |
 | HTTP 429 | Wait 15 minutes; auth is 20/IP and roadmap/chat sends are 30/user per window. |
 | HTTP 401 after JWT secret change | Sign in again; changing the secret invalidates existing tokens. |
-| Password recovery 503 | Set server `RESEND_API_KEY` and a verified `EMAIL_FROM`; redeploy the API. |
+| Password recovery 503 | Set server `EMAIL_USER` and `EMAIL_APP_PASSWORD`, optionally set `EMAIL_FROM`, then redeploy the API. |
 | Preview apply 409 | Progress, quiz results, preferences, or active roadmap changed; create a fresh adjustment preview. |
 | Quiz 503 | No curated set covers this topic and Gemini is unavailable; retry after restoring AI access. |
 
@@ -208,10 +230,10 @@ the URL fragment, expire in 30 minutes, and work once. Only a SHA-256 hash is st
 in MongoDB. Resetting a password invalidates all existing JWTs. Production responses
 do not reveal whether an address is registered and never return a reset token.
 
-Set `RESEND_API_KEY` and `EMAIL_FROM` on the server to enable real email delivery.
-Use a sender verified with Resend. Without these values, development/test mode shows
-an email-preview link; production recovery returns a configuration error.
-The mail transport uses native `fetch`; no extra runtime dependency is required.
+Set `EMAIL_USER` and `EMAIL_APP_PASSWORD` on the server to enable real email delivery;
+`EMAIL_FROM` is optional and falls back to `SLOPE 2.0 <EMAIL_USER>`. Without these
+credentials, development/test mode shows an email-preview link; production recovery
+returns a configuration error. The mail transport uses Gmail SMTP through Nodemailer.
 
 ### 2. Daily study planning
 
@@ -265,7 +287,8 @@ Save resource buttons are synchronized throughout the app. My library also shows
 study reminders and read/unread state. Reminders are off by default. They respect
 your timezone, selected study days, preferred reminder time, and unfinished tasks.
 There is at most one reminder per user per local date. Email delivery uses a database
-lease plus a Resend idempotency key, with up to three attempts and five-minute backoff.
+lease with up to three attempts and five-minute backoff. Reminder email uses the same
+Gmail SMTP transport as password-reset email.
 
 Set `REMINDERS_ENABLED=true` to run the background worker while the API is awake.
 Opening My library also checks your due reminder. Render's free service can sleep,
@@ -279,7 +302,8 @@ Authorization: Bearer <CRON_SECRET>
 
 Use a dedicated `CRON_SECRET` of at least 32 characters, distinct from `JWT_SECRET`.
 Schedule checks every minute or every five minutes; later checks catch up on reminders
-still due that local day. Configure Resend for email; in-app reminders work without it.
+still due that local day. Configure the Gmail SMTP variables for email; in-app reminders
+work without them.
 
 ## Feature API reference
 

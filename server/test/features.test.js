@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { after, before, beforeEach, test } from 'node:test';
+import { after, before, beforeEach, mock, test } from 'node:test';
 import { spawn } from 'node:child_process';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -9,6 +9,7 @@ import { randomUUID } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
+import nodemailer from 'nodemailer';
 import User from '../models/User.js';
 import Roadmap from '../models/Roadmap.js';
 import Quiz from '../models/Quiz.js';
@@ -16,15 +17,29 @@ import QuizAttempt from '../models/QuizAttempt.js';
 import Reminder from '../models/Reminder.js';
 import { deliverDueReminder, reminderDue } from '../services/reminderService.js';
 import { localDate, addDays } from '../services/studyPlanService.js';
+import { emailConfigured, sendEmail } from '../services/emailService.js';
 
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'slope-integration-test-secret-with-32-characters';
 process.env.CLIENT_URL = 'http://localhost:5173';
-process.env.RESEND_API_KEY = '';
+process.env.EMAIL_USER = '';
+process.env.EMAIL_APP_PASSWORD = '';
 process.env.EMAIL_FROM = '';
 process.env.GEMINI_API_KEY = '';
 
 const nativeFetch = globalThis.fetch;
+const sentMail = [];
+let mailDeliveries = 0;
+let mailError;
+const fakeTransport = {
+  async sendMail(message) {
+    mailDeliveries += 1;
+    sentMail.push(message);
+    if (mailError) throw mailError;
+    return { messageId: `test-message-${mailDeliveries}` };
+  },
+};
+mock.method(nodemailer, 'createTransport', () => fakeTransport);
 let mongo;
 let directory;
 let server;
@@ -73,6 +88,9 @@ before(async () => {
 }, { timeout: 30000 });
 
 beforeEach(async () => {
+  sentMail.length = 0;
+  mailDeliveries = 0;
+  mailError = undefined;
   const suffix = randomUUID();
   const passwordHash = await bcrypt.hash('original-password', 10);
   [alice, bob] = await User.create([
@@ -85,6 +103,7 @@ beforeEach(async () => {
 
 after(async () => {
   globalThis.fetch = nativeFetch;
+  mock.restoreAll();
   if (server) await new Promise((resolve) => server.close(resolve));
   if (mongoose.connection.db?.databaseName.startsWith('slope_test_')) await mongoose.connection.dropDatabase();
   await mongoose.disconnect();
@@ -135,26 +154,63 @@ test('reset tokens are hashed, expire, are single-use, and invalidate old JWTs',
   assert.equal((await request('/auth/reset-password', { method: 'POST', body: { token: expiredToken, password: 'recovered-password' } })).status, 400);
 });
 
+test('Gmail email service detects configuration, sends safely, and hides delivery failures', async () => {
+  process.env.EMAIL_USER = '';
+  process.env.EMAIL_APP_PASSWORD = '';
+  process.env.EMAIL_FROM = '';
+  assert.equal(emailConfigured(), false);
+  await assert.rejects(
+    sendEmail({ to: 'student@example.com', subject: 'Missing config', text: 'No delivery.' }),
+    (error) => error.statusCode === 503 && /not configured/.test(error.message),
+  );
+
+  process.env.EMAIL_USER = 'sender@example.com';
+  process.env.EMAIL_APP_PASSWORD = 'test-app-password';
+  process.env.EMAIL_FROM = '';
+  assert.equal(emailConfigured(), true);
+  const info = await sendEmail({
+    to: 'student@example.com',
+    subject: 'Test reset',
+    text: 'Plain text body.',
+    html: '<p>HTML body.</p>',
+  });
+  assert.equal(info.messageId, 'test-message-1');
+  assert.deepEqual(sentMail[0], {
+    from: 'SLOPE 2.0 <sender@example.com>',
+    to: 'student@example.com',
+    subject: 'Test reset',
+    text: 'Plain text body.',
+    html: '<p>HTML body.</p>',
+  });
+
+  mailError = new Error('SMTP rejected the message');
+  await assert.rejects(
+    sendEmail({ to: 'student@example.com', subject: 'Failed delivery', text: 'Try again.' }),
+    (error) => error.statusCode === 503
+      && /could not be delivered/.test(error.message)
+      && !error.message.includes('test-app-password'),
+  );
+
+  process.env.EMAIL_USER = '';
+  process.env.EMAIL_APP_PASSWORD = '';
+  process.env.EMAIL_FROM = '';
+});
+
 test('production recovery does not reveal account existence or return reset tokens', async () => {
   process.env.NODE_ENV = 'production';
-  process.env.RESEND_API_KEY = 'test-mail-key';
-  process.env.EMAIL_FROM = 'SLOPE <test@example.com>';
-  let sent;
-  globalThis.fetch = async (url, options) => {
-    assert.equal(url, 'https://api.resend.com/emails');
-    sent = JSON.parse(options.body);
-    return new Response('{}', { status: 200 });
-  };
+  process.env.EMAIL_USER = 'sender@example.com';
+  process.env.EMAIL_APP_PASSWORD = 'test-app-password';
+  process.env.EMAIL_FROM = 'SLOPE 2.0 <sender@example.com>';
   try {
     const known = await request('/auth/forgot-password', { method: 'POST', body: { email: alice.email } });
     const unknown = await request('/auth/forgot-password', { method: 'POST', body: { email: 'missing@example.com' } });
     assert.deepEqual(known, unknown);
     assert.equal(known.data.previewUrl, undefined);
-    assert.match(sent.text, /reset-password#token=/);
-    assert.deepEqual(sent.to, [alice.email]);
+    assert.match(sentMail[0].text, /reset-password#token=/);
+    assert.match(sentMail[0].html, /Reset your password/);
+    assert.equal(sentMail[0].to, alice.email);
   } finally {
-    process.env.NODE_ENV = 'test'; process.env.RESEND_API_KEY = ''; process.env.EMAIL_FROM = '';
-    globalThis.fetch = nativeFetch;
+    process.env.NODE_ENV = 'test'; process.env.EMAIL_USER = ''; process.env.EMAIL_APP_PASSWORD = ''; process.env.EMAIL_FROM = '';
   }
 });
 
@@ -312,13 +368,11 @@ test('reminders respect timezone, study days, and opt-in; delivery is deduplicat
   await seedRoadmap();
   alice.preferences = { ...preferences, timezone: 'UTC', studyDays: [now.getUTCDay()], reminderTime: '00:00' };
   await alice.save();
-  process.env.RESEND_API_KEY = 'test-mail-key'; process.env.EMAIL_FROM = 'SLOPE <test@example.com>';
-  let deliveries = 0;
-  globalThis.fetch = async (url, options) => { deliveries += 1; assert.match(options.headers['Idempotency-Key'], /^slope-reminder-/); return new Response('{}', { status: 200 }); };
+  process.env.EMAIL_USER = 'sender@example.com'; process.env.EMAIL_APP_PASSWORD = 'test-app-password'; process.env.EMAIL_FROM = 'SLOPE 2.0 <sender@example.com>';
   try {
     const results = await Promise.all([deliverDueReminder(alice, now), deliverDueReminder(alice, now)]);
     assert.equal(results.filter((result) => result.emailed).length, 1);
-    assert.equal(deliveries, 1);
+    assert.equal(mailDeliveries, 1);
     assert.equal(await Reminder.countDocuments({ userId: alice.id }), 1);
     const reminders = await request('/library/reminders');
     assert.equal(reminders.data.reminders.length, 1);
@@ -327,7 +381,7 @@ test('reminders respect timezone, study days, and opt-in; delivery is deduplicat
     assert.equal((await request(`/library/reminders/${id}/read`, { method: 'PATCH', auth: bobToken })).status, 404);
     assert.equal((await request(`/library/reminders/${id}/read`, { method: 'PATCH' })).status, 200);
     assert.equal((await request('/library/reminders/run', { method: 'POST' })).status, 401);
-  } finally { process.env.RESEND_API_KEY = ''; process.env.EMAIL_FROM = ''; globalThis.fetch = nativeFetch; }
+  } finally { process.env.EMAIL_USER = ''; process.env.EMAIL_APP_PASSWORD = ''; process.env.EMAIL_FROM = ''; }
 });
 
 test('daily plans carry overdue tasks and refresh when planning preferences change', async () => {
@@ -385,15 +439,14 @@ test('reminder email failures back off and scheduler requests require a dedicate
   const now = new Date();
   alice.preferences = { timezone: 'UTC', studyDays: [now.getUTCDay()], sessionMinutes: 45, reminderEnabled: true, reminderTime: '00:00' };
   await alice.save();
-  process.env.RESEND_API_KEY = 'test-mail-key'; process.env.EMAIL_FROM = 'test@example.com';
-  let deliveries = 0;
-  globalThis.fetch = async () => { deliveries += 1; return new Response('{}', { status: 503 }); };
+  process.env.EMAIL_USER = 'sender@example.com'; process.env.EMAIL_APP_PASSWORD = 'test-app-password'; process.env.EMAIL_FROM = 'sender@example.com';
+  mailError = new Error('SMTP unavailable');
   try {
     assert.equal((await deliverDueReminder(alice, now)).failed, true);
     assert.equal((await deliverDueReminder(alice, now)).emailed, false);
-    assert.equal(deliveries, 1);
+    assert.equal(mailDeliveries, 1);
     assert.equal((await Reminder.findOne({ userId: alice.id })).emailSentAt, undefined);
-  } finally { process.env.RESEND_API_KEY = ''; process.env.EMAIL_FROM = ''; globalThis.fetch = nativeFetch; }
+  } finally { process.env.EMAIL_USER = ''; process.env.EMAIL_APP_PASSWORD = ''; process.env.EMAIL_FROM = ''; mailError = undefined; }
   process.env.CRON_SECRET = 'dedicated-scheduler-secret-at-least-32-characters';
   try {
     assert.equal((await request('/library/reminders/run', { method: 'POST' })).status, 401);
