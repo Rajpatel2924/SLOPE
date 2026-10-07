@@ -3,7 +3,7 @@ import { httpError } from './httpError.js';
 
 function emailConfig() {
   const user = process.env.EMAIL_USER?.trim();
-  const password = process.env.EMAIL_APP_PASSWORD?.trim();
+  const password = process.env.EMAIL_APP_PASSWORD?.replace(/\s+/g, '');
   const from = process.env.EMAIL_FROM?.trim() || (user ? `SLOPE 2.0 <${user}>` : '');
 
   return { user, password, from };
@@ -35,7 +35,13 @@ export async function sendEmail({ to, subject, text, html }) {
 
   try {
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      requireTLS: true,
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
       auth: {
         user,
         pass: password,

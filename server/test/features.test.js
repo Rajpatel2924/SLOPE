@@ -31,6 +31,7 @@ const nativeFetch = globalThis.fetch;
 const sentMail = [];
 let mailDeliveries = 0;
 let mailError;
+let transportOptions;
 const fakeTransport = {
   async sendMail(message) {
     mailDeliveries += 1;
@@ -39,7 +40,10 @@ const fakeTransport = {
     return { messageId: `test-message-${mailDeliveries}` };
   },
 };
-mock.method(nodemailer, 'createTransport', () => fakeTransport);
+mock.method(nodemailer, 'createTransport', (options) => {
+  transportOptions = options;
+  return fakeTransport;
+});
 let mongo;
 let directory;
 let server;
@@ -91,6 +95,7 @@ beforeEach(async () => {
   sentMail.length = 0;
   mailDeliveries = 0;
   mailError = undefined;
+  transportOptions = undefined;
   const suffix = randomUUID();
   const passwordHash = await bcrypt.hash('original-password', 10);
   [alice, bob] = await User.create([
@@ -165,7 +170,7 @@ test('Gmail email service detects configuration, sends safely, and hides deliver
   );
 
   process.env.EMAIL_USER = 'sender@example.com';
-  process.env.EMAIL_APP_PASSWORD = 'test-app-password';
+  process.env.EMAIL_APP_PASSWORD = 'test app password';
   process.env.EMAIL_FROM = '';
   assert.equal(emailConfigured(), true);
   const info = await sendEmail({
@@ -175,6 +180,16 @@ test('Gmail email service detects configuration, sends safely, and hides deliver
     html: '<p>HTML body.</p>',
   });
   assert.equal(info.messageId, 'test-message-1');
+  assert.deepEqual(transportOptions, {
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    requireTLS: true,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
+    auth: { user: 'sender@example.com', pass: 'testapppassword' },
+  });
   assert.deepEqual(sentMail[0], {
     from: 'SLOPE 2.0 <sender@example.com>',
     to: 'student@example.com',
